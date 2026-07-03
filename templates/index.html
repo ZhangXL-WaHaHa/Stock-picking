@@ -23,17 +23,6 @@
         <div class="toolbar">
             <button id="btn-screen" onclick="runScreen()">立即筛选</button>
             <span id="status"></span>
-            <div class="history-select">
-                <label>历史记录：</label>
-                <select id="history-list" onchange="loadHistory(this.value)">
-                    <option value="">-- 选择 --</option>
-                    {% if history %}
-                    {% for h in history %}
-                    <option value="{{ h.id }}">{{ h.screen_time }} ({{ h.total_found }}只)</option>
-                    {% endfor %}
-                    {% endif %}
-                </select>
-            </div>
         </div>
 
         <div class="schedule-panel">
@@ -70,50 +59,10 @@
         </div>
 
         <div id="results-area">
-            {% if latest and latest.results %}
-            <p class="result-meta">
-                上次筛选：{{ latest.screen_time }} | 共找到 <strong>{{ latest.total_found }}</strong> 只
-            </p>
-            <table id="results-table">
-                <thead>
-                    <tr>
-                        <th>优先级</th>
-                        <th>代码</th>
-                        <th>名称</th>
-                        <th>最新价</th>
-                        <th>涨跌幅%</th>
-                        <th>量比</th>
-                        <th>换手率%</th>
-                        <th>流通市值(亿)</th>
-                        <th>VWAP参考</th>
-                        <th>尾盘量能</th>
-                        <th>题材概念</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for s in latest.results %}
-                    <tr class="priority-{{ s.priority_score }}">
-                        <td class="stars">{{ '★' * s.priority_score }}{{ '☆' * (5 - s.priority_score) }}</td>
-                        <td class="code">{{ s.code }}</td>
-                        <td>{{ s.name }}</td>
-                        <td>{{ s.price }}</td>
-                        <td class="change">+{{ s.change_pct }}%</td>
-                        <td>{{ s.volume_ratio }}</td>
-                        <td>{{ s.turnover_rate }}%</td>
-                        <td>{{ s.market_cap_yi }}</td>
-                        <td class="ref-info">{{ s.vwap_info }}</td>
-                        <td class="ref-info">{{ s.late_volume_info }}</td>
-                        <td class="themes">{% for t in (s.themes|default('', true)).split('、') %}{% if t %}<span class="theme-tag">{{ t }}</span>{% endif %}{% endfor %}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
             <div class="empty-state">
                 <p>暂无筛选结果，点击「立即筛选」开始</p>
                 <p class="hint">建议在交易日 14:30-15:00 尾盘时段执行筛选</p>
             </div>
-            {% endif %}
         </div>
     </div>
 
@@ -132,7 +81,6 @@
                     status.textContent = `筛选完成！找到 ${data.total_found} 只股票`;
                     status.className = 'success';
                     renderResults(data);
-                    refreshHistory();
                 } else {
                     status.textContent = `筛选失败: ${data.message}`;
                     status.className = 'error';
@@ -142,40 +90,6 @@
                 status.className = 'error';
             }
             btn.disabled = false;
-        }
-
-        async function loadHistory(recordId) {
-            if (!recordId) return;
-            try {
-                const resp = await fetch(`/api/history/${recordId}`);
-                const data = await resp.json();
-                if (data.results) {
-                    renderResults({
-                        screen_time: data.screen_time,
-                        total_found: data.total_found,
-                        results: data.results,
-                    });
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        async function refreshHistory() {
-            try {
-                const resp = await fetch('/api/history');
-                const list = await resp.json();
-                const sel = document.getElementById('history-list');
-                sel.innerHTML = '<option value="">-- 选择 --</option>';
-                list.forEach(h => {
-                    const opt = document.createElement('option');
-                    opt.value = h.id;
-                    opt.textContent = `${h.screen_time} (${h.total_found}只)`;
-                    sel.appendChild(opt);
-                });
-            } catch (e) {
-                console.error(e);
-            }
         }
 
         function renderResults(data) {
@@ -268,6 +182,20 @@
                 st.className = 'error';
             }
         }
+
+        async function loadLatest() {
+            try {
+                const resp = await fetch('/api/latest');
+                const data = await resp.json();
+                if (data.screen_time && data.results && data.results.length > 0) {
+                    renderResults(data);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        loadLatest();
     </script>
 </body>
 </html>

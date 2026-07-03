@@ -1,0 +1,27 @@
+name: 定时选股 & 飞书推送
+
+on:
+  schedule:
+    # UTC 时间，北京时间 = UTC+8
+    - cron: "30 6 * * 1-5"   # 北京时间 14:30
+    - cron: "40 6 * * 1-5"   # 北京时间 14:40
+    - cron: "50 6 * * 1-5"   # 北京时间 14:50
+  workflow_dispatch:
+
+jobs:
+  screen-and-notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 执行筛选并推送飞书
+        env:
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+        run: python notify_feishu.py
