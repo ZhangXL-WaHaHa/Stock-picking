@@ -66,6 +66,24 @@
         </div>
     </div>
 
+    <button class="donate-fab" id="donate-fab" onclick="toggleDonate()">打赏</button>
+    <div class="donate-popup" id="donate-popup">
+        <div class="donate-header">
+            <span>请作者喝杯咖啡 :)</span>
+            <button class="donate-close" onclick="toggleDonate()">&times;</button>
+        </div>
+        <div class="donate-qrcodes">
+            <div class="donate-item">
+                <img src="/static/1e9d13b16e2c520096243e2f38b754db_compress.jpg" alt="微信收款码">
+                <span>微信</span>
+            </div>
+            <div class="donate-item">
+                <img src="/static/05903b5e59f212d261700d101fc197c8_compress.jpg" alt="支付宝收款码">
+                <span>支付宝</span>
+            </div>
+        </div>
+    </div>
+
     <script>
         async function runScreen() {
             const btn = document.getElementById('btn-screen');
@@ -193,6 +211,13 @@
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        function toggleDonate() {
+            const popup = document.getElementById('donate-popup');
+            const fab = document.getElementById('donate-fab');
+            const open = popup.classList.toggle('show');
+            fab.classList.toggle('hide', open);
         }
 
         loadLatest();
