@@ -197,6 +197,22 @@ header h1 {
     color: #aaa;
 }
 
+.themes {
+    max-width: 260px;
+}
+
+.theme-tag {
+    display: inline-block;
+    background: #1a2a4a;
+    border: 1px solid #2a4a7a;
+    color: #6ab0f3;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin: 1px 2px;
+    white-space: nowrap;
+}
+
 .ref-info:has([class*="警告"]) {
     color: #ff6b6b;
 }

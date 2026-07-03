@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import logging
 from typing import List, Tuple
-from data_fetcher import get_realtime_quotes, get_zt_codes_recent, get_stock_intraday
+from data_fetcher import get_realtime_quotes, get_zt_codes_recent, get_stock_intraday, get_stock_themes
 from models import StockResult
 
 logger = logging.getLogger(__name__)
@@ -147,6 +147,7 @@ def screen_stocks() -> List[dict]:
         market_cap_yi = float(row["流通市值"])
 
         vwap_info, late_info = get_intraday_reference(code)
+        themes = get_stock_themes(code)
 
         stock = StockResult(
             code=code,
@@ -160,6 +161,7 @@ def screen_stocks() -> List[dict]:
             has_zt_15d=True,
             vwap_info=vwap_info,
             late_volume_info=late_info,
+            themes="、".join(themes),
         )
         results.append(stock.to_dict())
 

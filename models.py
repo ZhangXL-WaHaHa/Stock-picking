@@ -15,6 +15,7 @@ class StockResult(BaseModel):
     has_zt_15d: bool
     vwap_info: str        # VWAP偏离参考信息
     late_volume_info: str # 尾盘量能参考信息
+    themes: str = ""      # 所属题材概念
 
     def to_dict(self) -> dict:
         return self.model_dump()

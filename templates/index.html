@@ -87,6 +87,7 @@
                         <th>流通市值(亿)</th>
                         <th>VWAP参考</th>
                         <th>尾盘量能</th>
+                        <th>题材概念</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -102,6 +103,7 @@
                         <td>{{ s.market_cap_yi }}</td>
                         <td class="ref-info">{{ s.vwap_info }}</td>
                         <td class="ref-info">{{ s.late_volume_info }}</td>
+                        <td class="themes">{% for t in (s.themes|default('', true)).split('、') %}{% if t %}<span class="theme-tag">{{ t }}</span>{% endif %}{% endfor %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -188,7 +190,7 @@
             html += `<table id="results-table"><thead><tr>
                 <th>优先级</th><th>代码</th><th>名称</th><th>最新价</th>
                 <th>涨跌幅%</th><th>量比</th><th>换手率%</th><th>流通市值(亿)</th>
-                <th>VWAP参考</th><th>尾盘量能</th>
+                <th>VWAP参考</th><th>尾盘量能</th><th>题材概念</th>
             </tr></thead><tbody>`;
 
             data.results.forEach(s => {
@@ -204,6 +206,7 @@
                     <td>${s.market_cap_yi}</td>
                     <td class="ref-info">${s.vwap_info}</td>
                     <td class="ref-info">${s.late_volume_info}</td>
+                    <td class="themes">${(s.themes || '').split('、').filter(t=>t).map(t=>'<span class="theme-tag">'+t+'</span>').join('')}</td>
                 </tr>`;
             });
             html += '</tbody></table>';

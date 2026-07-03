@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 TENCENT_BATCH_URL = "https://qt.gtimg.cn/q={}"
 TENCENT_MINUTE_URL = "https://web.ifzq.gtimg.cn/appstock/app/minute/query?_var=min_data&code={}"
 TENCENT_KLINE_URL = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?_var=kline_dayqfq&param={},day,{},{},30,qfq"
+EASTMONEY_CONCEPT_URL = "https://emweb.securities.eastmoney.com/PC_HSF10/CoreConception/PageAjax?code={}"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Referer": "https://finance.qq.com"}
 BATCH_SIZE = 80
 
@@ -166,6 +167,23 @@ def get_stock_intraday(code: str) -> Optional[pd.DataFrame]:
     except Exception as e:
         logger.debug(f"获取 {code} 分时数据失败: {e}")
     return None
+
+
+def get_stock_themes(code: str) -> List[str]:
+    prefix = "SH" if code.startswith("6") else "SZ"
+    symbol = f"{prefix}{code}"
+    try:
+        resp = requests.get(
+            EASTMONEY_CONCEPT_URL.format(symbol),
+            headers={"User-Agent": HEADERS["User-Agent"]},
+            timeout=8,
+        )
+        data = resp.json()
+        boards = data.get("ssbk", [])
+        return [b["BOARD_NAME"] for b in boards if b.get("IS_PRECISE") == "1"]
+    except Exception as e:
+        logger.debug(f"获取 {code} 题材概念失败: {e}")
+        return []
 
 
 def is_trade_time() -> bool:
