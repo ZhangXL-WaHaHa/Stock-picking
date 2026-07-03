@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一夜持股法选股器</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>改良版一夜持股法 - 自动选股</h1>
+            <div class="rules-summary">
+                <span class="rule">涨幅2-6%</span>
+                <span class="rule">量比&gt;1</span>
+                <span class="rule">换手率5-10%</span>
+                <span class="rule">流通市值50-300亿</span>
+                <span class="rule">15日内涨停</span>
+                <span class="rule semi">分时参考(半自动)</span>
+            </div>
+        </header>
+
+        <div class="toolbar">
+            <button id="btn-screen" onclick="runScreen()">立即筛选</button>
+            <span id="status"></span>
+            <div class="history-select">
+                <label>历史记录：</label>
+                <select id="history-list" onchange="loadHistory(this.value)">
+                    <option value="">-- 选择 --</option>
+                    {% if history %}
+                    {% for h in history %}
+                    <option value="{{ h.id }}">{{ h.screen_time }} ({{ h.total_found }}只)</option>
+                    {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+
+        <div class="schedule-panel">
+            <div class="schedule-header">
+                <span class="schedule-title">定时筛选</span>
+                <button class="btn-add-schedule" onclick="addScheduleRow()">+ 添加时间</button>
+            </div>
+            <div id="schedule-list">
+                {% if schedules %}
+                {% for s in schedules %}
+                <div class="schedule-row" data-index="{{ loop.index0 }}">
+                    <label class="switch">
+                        <input type="checkbox" {% if s.enabled %}checked{% endif %} onchange="saveSchedules()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="schedule-label">周一至周五</span>
+                    <input type="time" value="{{ '%02d:%02d' | format(s.hour, s.minute) }}" onchange="saveSchedules()">
+                    <button class="btn-remove-schedule" onclick="removeScheduleRow(this)">&times;</button>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="schedule-row">
+                    <label class="switch">
+                        <input type="checkbox" checked onchange="saveSchedules()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="schedule-label">周一至周五</span>
+                    <input type="time" value="14:50" onchange="saveSchedules()">
+                    <button class="btn-remove-schedule" onclick="removeScheduleRow(this)">&times;</button>
+                </div>
+                {% endif %}
+            </div>
+            <span id="schedule-status"></span>
+        </div>
+
+        <div id="results-area">
+            {% if latest and latest.results %}
+            <p class="result-meta">
+                上次筛选：{{ latest.screen_time }} | 共找到 <strong>{{ latest.total_found }}</strong> 只
+            </p>
+            <table id="results-table">
+                <thead>
+                    <tr>
+                        <th>优先级</th>
+                        <th>代码</th>
+                        <th>名称</th>
+                        <th>最新价</th>
+                        <th>涨跌幅%</th>
+                        <th>量比</th>
+                        <th>换手率%</th>
+                        <th>流通市值(亿)</th>
+                        <th>VWAP参考</th>
+                        <th>尾盘量能</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in latest.results %}
+                    <tr class="priority-{{ s.priority_score }}">
+                        <td class="stars">{{ '★' * s.priority_score }}{{ '☆' * (5 - s.priority_score) }}</td>
+                        <td class="code">{{ s.code }}</td>
+                        <td>{{ s.name }}</td>
+                        <td>{{ s.price }}</td>
+                        <td class="change">+{{ s.change_pct }}%</td>
+                        <td>{{ s.volume_ratio }}</td>
+                        <td>{{ s.turnover_rate }}%</td>
+                        <td>{{ s.market_cap_yi }}</td>
+                        <td class="ref-info">{{ s.vwap_info }}</td>
+                        <td class="ref-info">{{ s.late_volume_info }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <p>暂无筛选结果，点击「立即筛选」开始</p>
+                <p class="hint">建议在交易日 14:30-15:00 尾盘时段执行筛选</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        async function runScreen() {
+            const btn = document.getElementById('btn-screen');
+            const status = document.getElementById('status');
+            btn.disabled = true;
+            status.textContent = '筛选中，请稍候...';
+            status.className = 'loading';
+
+            try {
+                const resp = await fetch('/api/screen');
+                const data = await resp.json();
+                if (data.success) {
+                    status.textContent = `筛选完成！找到 ${data.total_found} 只股票`;
+                    status.className = 'success';
+                    renderResults(data);
+                    refreshHistory();
+                } else {
+                    status.textContent = `筛选失败: ${data.message}`;
+                    status.className = 'error';
+                }
+            } catch (e) {
+                status.textContent = `网络错误: ${e.message}`;
+                status.className = 'error';
+            }
+            btn.disabled = false;
+        }
+
+        async function loadHistory(recordId) {
+            if (!recordId) return;
+            try {
+                const resp = await fetch(`/api/history/${recordId}`);
+                const data = await resp.json();
+                if (data.results) {
+                    renderResults({
+                        screen_time: data.screen_time,
+                        total_found: data.total_found,
+                        results: data.results,
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function refreshHistory() {
+            try {
+                const resp = await fetch('/api/history');
+                const list = await resp.json();
+                const sel = document.getElementById('history-list');
+                sel.innerHTML = '<option value="">-- 选择 --</option>';
+                list.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h.id;
+                    opt.textContent = `${h.screen_time} (${h.total_found}只)`;
+                    sel.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderResults(data) {
+            const area = document.getElementById('results-area');
+            if (!data.results || data.results.length === 0) {
+                area.innerHTML = `
+                    <p class="result-meta">筛选时间：${data.screen_time} | 未找到符合条件的股票</p>
+                    <div class="empty-state"><p>当前无符合全部条件的股票</p></div>`;
+                return;
+            }
+            let html = `<p class="result-meta">筛选时间：${data.screen_time} | 共找到 <strong>${data.total_found}</strong> 只</p>`;
+            html += `<table id="results-table"><thead><tr>
+                <th>优先级</th><th>代码</th><th>名称</th><th>最新价</th>
+                <th>涨跌幅%</th><th>量比</th><th>换手率%</th><th>流通市值(亿)</th>
+                <th>VWAP参考</th><th>尾盘量能</th>
+            </tr></thead><tbody>`;
+
+            data.results.forEach(s => {
+                const stars = '★'.repeat(s.priority_score) + '☆'.repeat(5 - s.priority_score);
+                html += `<tr class="priority-${s.priority_score}">
+                    <td class="stars">${stars}</td>
+                    <td class="code">${s.code}</td>
+                    <td>${s.name}</td>
+                    <td>${s.price}</td>
+                    <td class="change">+${s.change_pct}%</td>
+                    <td>${s.volume_ratio}</td>
+                    <td>${s.turnover_rate}%</td>
+                    <td>${s.market_cap_yi}</td>
+                    <td class="ref-info">${s.vwap_info}</td>
+                    <td class="ref-info">${s.late_volume_info}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            area.innerHTML = html;
+        }
+
+        function addScheduleRow() {
+            const list = document.getElementById('schedule-list');
+            const div = document.createElement('div');
+            div.className = 'schedule-row';
+            div.innerHTML = `
+                <label class="switch">
+                    <input type="checkbox" checked onchange="saveSchedules()">
+                    <span class="slider"></span>
+                </label>
+                <span class="schedule-label">周一至周五</span>
+                <input type="time" value="14:50" onchange="saveSchedules()">
+                <button class="btn-remove-schedule" onclick="removeScheduleRow(this)">&times;</button>`;
+            list.appendChild(div);
+            saveSchedules();
+        }
+
+        function removeScheduleRow(btn) {
+            const list = document.getElementById('schedule-list');
+            if (list.children.length <= 1) return;
+            btn.closest('.schedule-row').remove();
+            saveSchedules();
+        }
+
+        async function saveSchedules() {
+            const rows = document.querySelectorAll('#schedule-list .schedule-row');
+            const schedules = [];
+            rows.forEach(row => {
+                const enabled = row.querySelector('input[type="checkbox"]').checked;
+                const time = row.querySelector('input[type="time"]').value;
+                if (time) {
+                    const [h, m] = time.split(':').map(Number);
+                    schedules.push({ hour: h, minute: m, enabled });
+                }
+            });
+            const st = document.getElementById('schedule-status');
+            try {
+                const resp = await fetch('/api/schedules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(schedules),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    st.textContent = '已保存';
+                    st.className = 'success';
+                } else {
+                    st.textContent = data.message;
+                    st.className = 'error';
+                }
+                setTimeout(() => { st.textContent = ''; }, 2000);
+            } catch (e) {
+                st.textContent = '保存失败';
+                st.className = 'error';
+            }
+        }
+    </script>
+</body>
+</html>
