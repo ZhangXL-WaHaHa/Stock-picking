@@ -28,6 +28,27 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_screen_date
         ON screening_records(screen_date)
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS daily_snapshots (
+            trade_date TEXT NOT NULL,
+            code TEXT NOT NULL,
+            name TEXT NOT NULL,
+            close REAL NOT NULL,
+            open REAL,
+            high REAL,
+            low REAL,
+            change_pct REAL,
+            volume REAL,
+            amount REAL,
+            turnover_rate REAL,
+            circ_market_cap REAL,
+            PRIMARY KEY (trade_date, code)
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_snap_date
+        ON daily_snapshots(trade_date)
+    """)
     conn.commit()
     conn.close()
 
