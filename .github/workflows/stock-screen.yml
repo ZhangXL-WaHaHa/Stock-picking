@@ -1,4 +1,4 @@
-name: 定时选股 & 飞书推送
+name: 定时选股 & 通知推送
 
 on:
   schedule:
@@ -21,7 +21,12 @@ jobs:
       - name: 安装依赖
         run: pip install -r requirements.txt
 
-      - name: 执行筛选并推送飞书
+      - name: 执行筛选并推送通知
         env:
           FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: python notify_feishu.py
