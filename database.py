@@ -99,3 +99,47 @@ def get_latest_record() -> Optional[dict]:
     record = dict(row)
     record["results"] = json.loads(record["results_json"])
     return record
+
+
+# ---- daily_snapshots ----
+
+def save_daily_snapshots(trade_date: str, rows: List[dict]):
+    conn = get_connection()
+    conn.execute("DELETE FROM daily_snapshots WHERE trade_date = ?", (trade_date,))
+    conn.executemany(
+        """INSERT INTO daily_snapshots
+           (trade_date, code, name, close, open, high, low, change_pct, volume, amount, turnover_rate, circ_market_cap)
+           VALUES (:trade_date, :code, :name, :close, :open, :high, :low, :change_pct, :volume, :amount, :turnover_rate, :circ_market_cap)""",
+        rows,
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_snapshot_by_date(trade_date: str) -> List[dict]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM daily_snapshots WHERE trade_date = ?", (trade_date,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_cached_dates() -> List[str]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT DISTINCT trade_date FROM daily_snapshots ORDER BY trade_date DESC"
+    ).fetchall()
+    conn.close()
+    return [r["trade_date"] for r in rows]
+
+
+def get_snapshot_for_codes(trade_date: str, codes: List[str]) -> Dict[str, dict]:
+    conn = get_connection()
+    placeholders = ",".join("?" for _ in codes)
+    rows = conn.execute(
+        f"SELECT * FROM daily_snapshots WHERE trade_date = ? AND code IN ({placeholders})",
+        [trade_date] + codes,
+    ).fetchall()
+    conn.close()
+    return {r["code"]: dict(r) for r in rows}
