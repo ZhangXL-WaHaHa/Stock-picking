@@ -12,7 +12,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from database import init_db
 from screener import screen_stocks
-from trade_tracker import get_stats, get_recent_trades
+from trade_tracker import get_stats, get_recent_trades, add_pending_trades
+from notify_feishu import build_message, send_to_feishu, send_email
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,10 +55,15 @@ def scheduled_screen():
     try:
         results = screen_stocks()
         _update_latest(results)
+        stats = get_stats()
+        message = build_message(results, stats)
+        send_to_feishu(message)
+        send_email(results, stats)
+        add_pending_trades(results)
         if results:
-            logger.info(f"定时筛选完成，找到 {len(results)} 只")
+            logger.info(f"定时筛选完成，找到 {len(results)} 只，已推送通知")
         else:
-            logger.info("定时筛选完成，未找到符合条件的股票")
+            logger.info("定时筛选完成，未找到符合条件的股票，已推送通知")
     except Exception as e:
         logger.error(f"定时筛选异常: {e}")
 

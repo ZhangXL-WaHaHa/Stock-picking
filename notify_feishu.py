@@ -82,7 +82,7 @@ def send_to_feishu(message):
         logger.warning("FEISHU_WEBHOOK_URL 未设置，跳过飞书推送")
         return
 
-    resp = requests.post(WEBHOOK_URL, json=message, timeout=10)
+    resp = requests.post(WEBHOOK_URL, json=message, timeout=10, proxies={"http": None, "https": None})
     data = resp.json()
     if data.get("code") == 0:
         logger.info("飞书推送成功")
