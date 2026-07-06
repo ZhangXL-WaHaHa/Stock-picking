@@ -14,6 +14,7 @@ TENCENT_KLINE_URL = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?_var=kli
 EASTMONEY_CONCEPT_URL = "https://emweb.securities.eastmoney.com/PC_HSF10/CoreConception/PageAjax?code={}"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Referer": "https://finance.qq.com"}
 BATCH_SIZE = 80
+NO_PROXY = {"http": None, "https": None}
 
 
 def _generate_main_board_codes() -> List[str]:
@@ -70,7 +71,7 @@ def get_realtime_quotes() -> pd.DataFrame:
         batch = all_codes[i : i + BATCH_SIZE]
         query = ",".join(batch)
         try:
-            resp = requests.get(TENCENT_BATCH_URL.format(query), headers=HEADERS, timeout=15)
+            resp = requests.get(TENCENT_BATCH_URL.format(query), headers=HEADERS, timeout=15, proxies=NO_PROXY)
             resp.encoding = "gbk"
             for line in resp.text.strip().split(";"):
                 if "~" not in line:
@@ -95,7 +96,7 @@ def _check_stock_zt(code: str, start_date: str, end_date: str) -> bool:
     symbol = f"{prefix}{code}"
     try:
         url = TENCENT_KLINE_URL.format(symbol, start_date, end_date)
-        resp = requests.get(url, headers=HEADERS, timeout=8)
+        resp = requests.get(url, headers=HEADERS, timeout=8, proxies=NO_PROXY)
         text = resp.text
         if text.startswith("kline_dayqfq="):
             text = text[len("kline_dayqfq="):]
@@ -142,7 +143,7 @@ def get_stock_intraday(code: str) -> Optional[pd.DataFrame]:
     prefix = "sh" if code.startswith("6") else "sz"
     symbol = f"{prefix}{code}"
     try:
-        resp = requests.get(TENCENT_MINUTE_URL.format(symbol), headers=HEADERS, timeout=10)
+        resp = requests.get(TENCENT_MINUTE_URL.format(symbol), headers=HEADERS, timeout=10, proxies=NO_PROXY)
         text = resp.text
         if text.startswith("min_data="):
             text = text[len("min_data="):]
@@ -176,7 +177,7 @@ def get_next_day_open(code: str, after_date: str) -> Optional[Tuple[str, float]]
     end = (datetime.strptime(after_date, "%Y-%m-%d") + timedelta(days=10)).strftime("%Y-%m-%d")
     try:
         url = TENCENT_KLINE_URL.format(symbol, start, end)
-        resp = requests.get(url, headers=HEADERS, timeout=8)
+        resp = requests.get(url, headers=HEADERS, timeout=8, proxies=NO_PROXY)
         text = resp.text
         if text.startswith("kline_dayqfq="):
             text = text[len("kline_dayqfq="):]
@@ -199,6 +200,7 @@ def get_stock_themes(code: str) -> List[str]:
             EASTMONEY_CONCEPT_URL.format(symbol),
             headers={"User-Agent": HEADERS["User-Agent"]},
             timeout=8,
+            proxies=NO_PROXY,
         )
         data = resp.json()
         boards = data.get("ssbk", [])

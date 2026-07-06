@@ -122,8 +122,16 @@ def screen_stocks() -> List[dict]:
     logger.info("开始执行一夜持股法筛选...")
 
     df = get_realtime_quotes()
+    if df.empty:
+        logger.warning("未获取到任何行情数据，可能处于非交易时段或接口异常")
+        return []
     total = len(df)
     logger.info(f"全市场主板共 {total} 只股票（已排除ST）")
+
+    expected_cols = {"涨跌幅", "量比", "换手率", "流通市值"}
+    missing = expected_cols - set(df.columns)
+    if missing:
+        raise RuntimeError(f"行情数据缺少字段: {missing}，接口可能已变更")
 
     df = filter_change_pct(df)
     logger.info(f"规则1 - 涨幅2-6%过滤后: {len(df)} 只")
