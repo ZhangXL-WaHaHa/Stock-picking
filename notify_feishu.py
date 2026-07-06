@@ -8,6 +8,7 @@ import requests
 from datetime import datetime
 
 from screener import screen_stocks
+from trade_tracker import add_pending_trades, get_stats
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +25,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")
 EMAIL_TO = os.environ.get("EMAIL_TO", "")
 
 
-def build_message(results):
+def build_message(results, stats):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if not results:
@@ -58,6 +59,10 @@ def build_message(results):
 
     content = "\n---\n".join(lines)
 
+    if stats["total"] > 0:
+        content += (f"\n\n---\n**一夜持股胜率**: {stats['wins']}胜 {stats['losses']}负 "
+                    f"共{stats['total']}场 胜率**{stats['win_rate']}%**")
+
     return {
         "msg_type": "interactive",
         "card": {
@@ -85,7 +90,7 @@ def send_to_feishu(message):
         logger.error(f"飞书推送失败: {data}")
 
 
-def build_email_html(results):
+def build_email_html(results, stats):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if not results:
@@ -109,7 +114,7 @@ def build_email_html(results):
             f"</tr>"
         )
 
-    return f"""
+    html = f"""
     <h2>选股结果 - {now} ({len(results)}只)</h2>
     <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px">
     <tr style="background:#f0f0f0">
@@ -120,8 +125,15 @@ def build_email_html(results):
     </table>
     """
 
+    if stats["total"] > 0:
+        html += (f'<p style="margin-top:12px;color:#555"><b>一夜持股胜率</b>：'
+                 f'{stats["wins"]}胜 {stats["losses"]}负 '
+                 f'共{stats["total"]}场 胜率<b>{stats["win_rate"]}%</b></p>')
 
-def send_email(results):
+    return html
+
+
+def send_email(results, stats):
     if not all([SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_TO]):
         logger.warning("邮箱配置不完整，跳过邮件推送")
         return
@@ -135,7 +147,7 @@ def send_email(results):
     msg["From"] = SMTP_USER
     msg["To"] = EMAIL_TO
 
-    html = build_email_html(results)
+    html = build_email_html(results, stats)
     msg.attach(MIMEText(html, "html", "utf-8"))
 
     try:
@@ -152,9 +164,11 @@ def main():
     results = screen_stocks()
     logger.info(f"筛选完成，找到 {len(results)} 只股票")
 
-    message = build_message(results)
+    stats = get_stats()
+    message = build_message(results, stats)
     send_to_feishu(message)
-    send_email(results)
+    send_email(results, stats)
+    add_pending_trades(results)
 
 
 if __name__ == "__main__":

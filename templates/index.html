@@ -58,6 +58,29 @@
             <span id="schedule-status"></span>
         </div>
 
+        <div id="winrate-panel" class="winrate-panel" style="display:none;">
+            <div class="winrate-header">一夜持股法 · 胜率追踪</div>
+            <div class="winrate-cards">
+                <div class="winrate-card">
+                    <span class="winrate-num" id="wr-total">0</span>
+                    <span class="winrate-label">总场次</span>
+                </div>
+                <div class="winrate-card win">
+                    <span class="winrate-num" id="wr-wins">0</span>
+                    <span class="winrate-label">胜</span>
+                </div>
+                <div class="winrate-card loss">
+                    <span class="winrate-num" id="wr-losses">0</span>
+                    <span class="winrate-label">负</span>
+                </div>
+                <div class="winrate-card rate">
+                    <span class="winrate-num" id="wr-rate">0%</span>
+                    <span class="winrate-label">胜率</span>
+                </div>
+            </div>
+            <div id="recent-trades"></div>
+        </div>
+
         <div id="results-area">
             <div class="empty-state">
                 <p>暂无筛选结果，点击「立即筛选」开始</p>
@@ -220,7 +243,36 @@
             fab.classList.toggle('hide', open);
         }
 
+        async function loadWinrate() {
+            try {
+                const resp = await fetch('/api/winrate');
+                const data = await resp.json();
+                const s = data.stats;
+                if (s.total === 0) return;
+                document.getElementById('winrate-panel').style.display = '';
+                document.getElementById('wr-total').textContent = s.total;
+                document.getElementById('wr-wins').textContent = s.wins;
+                document.getElementById('wr-losses').textContent = s.losses;
+                document.getElementById('wr-rate').textContent = s.win_rate + '%';
+
+                const trades = data.recent_trades;
+                if (trades.length > 0) {
+                    let html = '<table class="trades-table"><thead><tr><th>日期</th><th>代码</th><th>名称</th><th>买入价</th><th>卖出价</th><th>盈亏</th></tr></thead><tbody>';
+                    trades.forEach(t => {
+                        const color = t.result === 'win' ? 'green' : 'red';
+                        const icon = t.result === 'win' ? '✅' : '❌';
+                        html += `<tr><td>${t.sell_date || t.pick_date}</td><td>${t.code}</td><td>${t.name}</td><td>${t.buy_price}</td><td>${t.sell_price}</td><td style="color:${color}">${icon} ${t.profit_pct > 0 ? '+' : ''}${t.profit_pct}%</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    document.getElementById('recent-trades').innerHTML = html;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
         loadLatest();
+        loadWinrate();
     </script>
 </body>
 </html>

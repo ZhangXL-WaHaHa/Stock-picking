@@ -6,11 +6,25 @@ on:
     - cron: "30 6 * * 1-5"   # 北京时间 14:30
     - cron: "40 6 * * 1-5"   # 北京时间 14:40
     - cron: "50 6 * * 1-5"   # 北京时间 14:50
+    - cron: "35 1 * * 1-5"   # 北京时间 09:35（早盘结算）
   workflow_dispatch:
+    inputs:
+      action:
+        description: "执行动作"
+        required: true
+        default: "screen"
+        type: choice
+        options:
+          - screen
+          - settle
+
+permissions:
+  contents: write
 
 jobs:
   screen-and-notify:
     runs-on: ubuntu-latest
+    if: github.event.schedule != '35 1 * * 1-5' && (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'screen')
     steps:
       - uses: actions/checkout@v4
 
@@ -30,3 +44,42 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: python notify_feishu.py
+
+      - name: 提交交易记录
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add trades.json
+          git diff --cached --quiet || git commit -m "chore: update trades.json"
+          git push
+
+  settle:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '35 1 * * 1-5' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'settle')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 早盘结算
+        env:
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python settle_trades.py
+
+      - name: 提交结算结果
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add trades.json
+          git diff --cached --quiet || git commit -m "chore: settle trades"
+          git push

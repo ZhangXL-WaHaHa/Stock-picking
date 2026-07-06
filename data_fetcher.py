@@ -169,6 +169,28 @@ def get_stock_intraday(code: str) -> Optional[pd.DataFrame]:
     return None
 
 
+def get_next_day_open(code: str, after_date: str) -> Optional[Tuple[str, float]]:
+    prefix = "sh" if code.startswith("6") else "sz"
+    symbol = f"{prefix}{code}"
+    start = (datetime.strptime(after_date, "%Y-%m-%d") - timedelta(days=5)).strftime("%Y-%m-%d")
+    end = (datetime.strptime(after_date, "%Y-%m-%d") + timedelta(days=10)).strftime("%Y-%m-%d")
+    try:
+        url = TENCENT_KLINE_URL.format(symbol, start, end)
+        resp = requests.get(url, headers=HEADERS, timeout=8)
+        text = resp.text
+        if text.startswith("kline_dayqfq="):
+            text = text[len("kline_dayqfq="):]
+        data = json.loads(text)
+        klines = data.get("data", {}).get(symbol, {})
+        days = klines.get("qfqday", klines.get("day", []))
+        for day in days:
+            if day[0] > after_date:
+                return (day[0], float(day[1]))
+    except Exception as e:
+        logger.debug(f"获取 {code} 次日开盘价失败: {e}")
+    return None
+
+
 def get_stock_themes(code: str) -> List[str]:
     prefix = "SH" if code.startswith("6") else "SZ"
     symbol = f"{prefix}{code}"

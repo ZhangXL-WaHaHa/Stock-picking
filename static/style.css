@@ -375,6 +375,104 @@ header h1 {
 }
 
 /* Donate */
+
+/* Win Rate Panel */
+.winrate-panel {
+    background: #1a1a3a;
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+}
+
+.winrate-header {
+    font-size: 15px;
+    color: #ffd700;
+    font-weight: bold;
+    margin-bottom: 14px;
+}
+
+.winrate-cards {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.winrate-card {
+    flex: 1;
+    min-width: 80px;
+    background: #0f0f23;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+}
+
+.winrate-card.win {
+    border-color: #2a6a4a;
+}
+
+.winrate-card.loss {
+    border-color: #6a2a2a;
+}
+
+.winrate-card.rate {
+    border-color: #4a4a2a;
+}
+
+.winrate-num {
+    display: block;
+    font-size: 28px;
+    font-weight: bold;
+    color: #e0e0e0;
+}
+
+.winrate-card.win .winrate-num {
+    color: #4ecdc4;
+}
+
+.winrate-card.loss .winrate-num {
+    color: #e63946;
+}
+
+.winrate-card.rate .winrate-num {
+    color: #ffd700;
+}
+
+.winrate-label {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.trades-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+}
+
+.trades-table th {
+    background: #0f0f23;
+    color: #8888cc;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 12px;
+    border-bottom: 1px solid #2a2a4a;
+}
+
+.trades-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #1a1a3a;
+    font-size: 13px;
+}
+
+.trades-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Donate */
 .donate-fab {
     position: fixed;
     bottom: 28px;
