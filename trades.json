@@ -1,0 +1,19 @@
+{
+  "trades": [
+    {
+      "code": "002079",
+      "name": "苏州固锝",
+      "pick_date": "2026-07-07",
+      "buy_price": 14.42,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
+    }
+  ],
+  "stats": {
+    "wins": 0,
+    "losses": 0,
+    "total": 0
+  }
+}
