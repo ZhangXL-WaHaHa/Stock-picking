@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 WEBHOOK_URL = os.environ.get("FEISHU_WEBHOOK_URL", "")
 SMTP_HOST = os.environ.get("SMTP_HOST", "")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
+SMTP_PORT = int(os.environ.get("SMTP_PORT") or "465")
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASS = os.environ.get("SMTP_PASS", "")
 EMAIL_TO = os.environ.get("EMAIL_TO", "")
