@@ -51,6 +51,83 @@ header h1 {
     color: #eebb00;
 }
 
+/* Strategy Tabs */
+.strategy-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    background: #12122a;
+    border-radius: 12px;
+    padding: 4px;
+    border: 1px solid #2a2a4a;
+}
+
+.strategy-tab {
+    position: relative;
+    background: transparent;
+    border: none;
+    color: #6666aa;
+    padding: 10px 22px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.1s;
+    user-select: none;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.strategy-tab:hover:not(.active) {
+    color: #aaaaee;
+    background: rgba(100, 100, 200, 0.1);
+}
+
+.strategy-tab:active {
+    transform: scale(0.96);
+}
+
+.strategy-tab.active {
+    background: linear-gradient(135deg, #2a2a6a, #1e1e50);
+    color: #ffd700;
+    box-shadow: 0 2px 12px rgba(255, 215, 0, 0.12), inset 0 1px 0 rgba(255, 215, 0, 0.1);
+}
+
+.strategy-tab.active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: #ffd700;
+    border-radius: 2px;
+}
+
+/* Strategy Description */
+.strategy-desc {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    min-height: 20px;
+}
+
+.strategy-desc-name {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.strategy-desc-text {
+    color: #888;
+    font-size: 13px;
+}
+
 /* Strategy Panel */
 .strategy-panel {
     background: #1a1a3a;

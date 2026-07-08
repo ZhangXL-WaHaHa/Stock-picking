@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -12,6 +12,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from database import init_db
 from screener import screen_stocks
+from strategies import get_strategy_list, STRATEGIES
 from trade_tracker import get_stats, get_recent_trades, get_pending_trades, add_pending_trades
 from notify_feishu import build_message, send_to_feishu, send_email
 
@@ -26,7 +27,7 @@ scheduler = BackgroundScheduler()
 SCHEDULE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "schedule_config.json")
 DEFAULT_SCHEDULES = [{"hour": 14, "minute": 50, "enabled": True}]
 
-latest_result = {"screen_time": None, "total_found": 0, "results": []}
+latest_results = {}
 
 
 def load_schedule_config():
@@ -41,9 +42,8 @@ def save_schedule_config(schedules):
         json.dump(schedules, f, ensure_ascii=False)
 
 
-def _update_latest(results):
-    global latest_result
-    latest_result = {
+def _update_latest(strategy, results):
+    latest_results[strategy] = {
         "screen_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "total_found": len(results),
         "results": results,
@@ -53,8 +53,8 @@ def _update_latest(results):
 def scheduled_screen():
     logger.info("定时任务触发：执行筛选...")
     try:
-        results = screen_stocks()
-        _update_latest(results)
+        results = screen_stocks("overnight")
+        _update_latest("overnight", results)
         stats = get_stats()
         message = build_message(results, stats)
         send_to_feishu(message)
@@ -98,7 +98,7 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
 
 
-app = FastAPI(title="一夜持股法选股器", lifespan=lifespan)
+app = FastAPI(title="股票筛选器", lifespan=lifespan)
 
 BASE_DIR = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
@@ -114,20 +114,28 @@ async def index(request: Request):
     })
 
 
+@app.get("/api/strategies")
+async def api_strategies():
+    return JSONResponse(get_strategy_list())
+
+
 @app.get("/api/screen")
-async def api_screen():
+async def api_screen(strategy: str = Query("overnight")):
+    if strategy not in STRATEGIES:
+        return JSONResponse({"success": False, "message": f"未知策略: {strategy}"}, status_code=400)
     try:
-        results = screen_stocks()
-        _update_latest(results)
-        return JSONResponse({"success": True, **latest_result})
+        results = screen_stocks(strategy)
+        _update_latest(strategy, results)
+        return JSONResponse({"success": True, **latest_results[strategy]})
     except Exception as e:
         logger.error(f"筛选失败: {e}")
         return JSONResponse({"success": False, "message": str(e)}, status_code=500)
 
 
 @app.get("/api/latest")
-async def api_latest():
-    return JSONResponse(latest_result)
+async def api_latest(strategy: str = Query("overnight")):
+    data = latest_results.get(strategy, {"screen_time": None, "total_found": 0, "results": []})
+    return JSONResponse(data)
 
 
 @app.get("/api/winrate")

@@ -274,6 +274,26 @@ def get_analysis_data(code: str, pick_date: str, sell_date: str) -> dict:
     return result
 
 
+def get_stock_klines(code: str, days: int = 90) -> list:
+    """获取个股近N日K线 [date, open, close, high, low, volume]"""
+    prefix = "sh" if code.startswith("6") else "sz"
+    symbol = f"{prefix}{code}"
+    end_date = datetime.now().strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=days + 30)).strftime("%Y-%m-%d")
+    try:
+        url = TENCENT_KLINE_URL.format(symbol, start_date, end_date)
+        resp = requests.get(url, headers=HEADERS, timeout=10, proxies=NO_PROXY)
+        text = resp.text
+        if text.startswith("kline_dayqfq="):
+            text = text[len("kline_dayqfq="):]
+        data = json.loads(text)
+        klines = data.get("data", {}).get(symbol, {})
+        return klines.get("qfqday", klines.get("day", []))
+    except Exception as e:
+        logger.debug(f"获取 {code} K线数据失败: {e}")
+    return []
+
+
 def get_stock_themes(code: str) -> List[str]:
     prefix = "SH" if code.startswith("6") else "SZ"
     symbol = f"{prefix}{code}"

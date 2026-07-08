@@ -3,95 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>一夜持股法选股器</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>股票筛选器</title>
+    <link rel="stylesheet" href="/static/style.css?v=3">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>改良版一夜持股法 - 自动选股</h1>
-            <div class="rules-summary">
-                <span class="rule">大盘环境</span>
-                <span class="rule">涨幅2-6%</span>
-                <span class="rule">量比&gt;1</span>
-                <span class="rule">换手率5-10%</span>
-                <span class="rule">流通市值50-300亿</span>
-                <span class="rule">收盘价上半区</span>
-                <span class="rule">涨停+缩量回调</span>
-                <span class="rule">VWAP/尾盘信号</span>
-            </div>
+            <h1>多策略股票筛选器</h1>
         </header>
 
-        <details class="strategy-panel">
-            <summary class="strategy-toggle">选股策略说明</summary>
-            <div class="strategy-content">
-                <div class="strategy-section">
-                    <h3>策略逻辑</h3>
-                    <p>尾盘买入、次日开盘卖出。通过多维度筛选找到当日强势且次日大概率高开的股票。</p>
-                </div>
-                <div class="strategy-grid">
-                    <div class="strategy-item">
-                        <span class="strategy-num">0</span>
-                        <div>
-                            <strong>大盘环境</strong>
-                            <p>上证指数当日跌幅超过0.5%时不出信号，避免逆势操作</p>
-                        </div>
-                    </div>
-                    <div class="strategy-item">
-                        <span class="strategy-num">1</span>
-                        <div>
-                            <strong>涨跌幅 2-6%</strong>
-                            <p>当日涨幅适中，既有上涨动能又未过度追高</p>
-                        </div>
-                    </div>
-                    <div class="strategy-item">
-                        <span class="strategy-num">2</span>
-                        <div>
-                            <strong>量比 &gt; 1</strong>
-                            <p>成交量高于近期均值，说明资金在积极参与</p>
-                        </div>
-                    </div>
-                    <div class="strategy-item">
-                        <span class="strategy-num">3</span>
-                        <div>
-                            <strong>换手率 5-10%</strong>
-                            <p>换手充分但不过度，筹码交换活跃</p>
-                        </div>
-                    </div>
-                    <div class="strategy-item">
-                        <span class="strategy-num">4</span>
-                        <div>
-                            <strong>流通市值 50-300亿</strong>
-                            <p>中盘股流动性好且弹性大，越接近150亿评分越高</p>
-                        </div>
-                    </div>
-                    <div class="strategy-item">
-                        <span class="strategy-num">5</span>
-                        <div>
-                            <strong>收盘价在上半区</strong>
-                            <p>收盘价高于日内振幅中位，排除冲高回落的弱势票</p>
-                        </div>
-                    </div>
-                    <div class="strategy-item">
-                        <span class="strategy-num">6</span>
-                        <div>
-                            <strong>涨停 + 缩量回调</strong>
-                            <p>15日内有涨停且之后缩量整理，说明主力控盘而非出货</p>
-                        </div>
-                    </div>
-                    <div class="strategy-item">
-                        <span class="strategy-num">7</span>
-                        <div>
-                            <strong>VWAP / 尾盘信号</strong>
-                            <p>收盘价在均价线上方且非尾盘放量跳水，确认全天走势健康</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="strategy-section">
-                    <h3>优先级评分</h3>
-                    <p>根据流通市值与150亿的偏离度打分（1-5星），偏离越小评分越高。5星股票自动纳入胜率追踪。</p>
-                </div>
-            </div>
+        <div class="strategy-tabs" id="strategy-tabs"></div>
+        <div class="strategy-desc" id="strategy-desc"></div>
+
+        <details class="strategy-panel" id="strategy-panel">
+            <summary class="strategy-toggle">筛选规则</summary>
+            <div class="strategy-content" id="strategy-rules"></div>
         </details>
 
         <div class="toolbar">
@@ -101,7 +27,7 @@
 
         <div class="schedule-panel">
             <div class="schedule-header">
-                <span class="schedule-title">定时筛选</span>
+                <span class="schedule-title">定时筛选（一夜持股法）</span>
                 <button class="btn-add-schedule" onclick="addScheduleRow()">+ 添加时间</button>
             </div>
             <div id="schedule-list">
@@ -167,7 +93,7 @@
 
         <div id="results-area">
             <div class="empty-state">
-                <p>暂无筛选结果，点击「立即筛选」开始</p>
+                <p>暂无筛选结果，选择策略后点击「立即筛选」</p>
                 <p class="hint">建议在交易日 14:30-15:00 尾盘时段执行筛选</p>
             </div>
         </div>
@@ -192,6 +118,68 @@
     </div>
 
     <script>
+        let strategies = [];
+        let currentStrategy = 'overnight';
+
+        async function loadStrategies() {
+            try {
+                const resp = await fetch('/api/strategies');
+                const data = await resp.json();
+                if (Array.isArray(data)) {
+                    strategies = data;
+                }
+            } catch (e) {
+                console.error('加载策略失败:', e);
+            }
+            renderTabs();
+            renderRules();
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('strategy-tabs');
+            if (container.children.length === 0) {
+                container.innerHTML = strategies.map(s =>
+                    `<button class="strategy-tab ${s.id === currentStrategy ? 'active' : ''}"
+                             data-id="${s.id}"
+                             onclick="switchStrategy('${s.id}')"
+                             title="${s.desc}">
+                        ${s.name}
+                    </button>`
+                ).join('');
+            } else {
+                container.querySelectorAll('.strategy-tab').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.id === currentStrategy);
+                });
+            }
+        }
+
+        function renderRules() {
+            const s = strategies.find(s => s.id === currentStrategy);
+            if (!s) return;
+
+            document.getElementById('strategy-desc').innerHTML =
+                `<span class="strategy-desc-name">${s.name}</span><span class="strategy-desc-text">${s.desc}</span>`;
+
+            const container = document.getElementById('strategy-rules');
+            let html = '<div class="strategy-grid">';
+            s.rules.forEach(r => {
+                html += `<div class="strategy-item">
+                    <span class="strategy-num">${r.num}</span>
+                    <div><strong>${r.title}</strong><p>${r.desc}</p></div>
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function switchStrategy(id) {
+            currentStrategy = id;
+            renderTabs();
+            renderRules();
+            document.getElementById('strategy-panel').open = true;
+            loadLatest();
+        }
+
         async function runScreen() {
             const btn = document.getElementById('btn-screen');
             const status = document.getElementById('status');
@@ -200,7 +188,7 @@
             status.className = 'loading';
 
             try {
-                const resp = await fetch('/api/screen');
+                const resp = await fetch(`/api/screen?strategy=${currentStrategy}`);
                 const data = await resp.json();
                 if (data.success) {
                     status.textContent = `筛选完成！找到 ${data.total_found} 只股票`;
@@ -226,30 +214,36 @@
                     <div class="empty-state"><p>当前无符合全部条件的股票</p></div>`;
                 return;
             }
-            let html = `<p class="result-meta">筛选时间：${data.screen_time} | 共找到 <strong>${data.total_found}</strong> 只</p>`;
-            html += `<table id="results-table"><thead><tr>
-                <th>优先级</th><th>代码</th><th>名称</th><th>最新价</th>
-                <th>涨跌幅%</th><th>量比</th><th>换手率%</th><th>流通市值(亿)</th>
-                <th>收盘位</th><th>VWAP参考</th><th>尾盘量能</th><th>题材概念</th>
-            </tr></thead><tbody>`;
 
-            data.results.forEach(s => {
-                const stars = '★'.repeat(s.priority_score) + '☆'.repeat(5 - s.priority_score);
-                const closePosPercent = Math.round((s.close_position || 0) * 100);
-                html += `<tr class="priority-${s.priority_score}">
-                    <td class="stars">${stars}</td>
-                    <td class="code">${s.code}</td>
-                    <td>${s.name}</td>
-                    <td>${s.price}</td>
-                    <td class="change">+${s.change_pct}%</td>
-                    <td>${s.volume_ratio}</td>
-                    <td>${s.turnover_rate}%</td>
-                    <td>${s.market_cap_yi}</td>
-                    <td>${closePosPercent}%</td>
-                    <td class="ref-info">${s.vwap_info}</td>
-                    <td class="ref-info">${s.late_volume_info}</td>
-                    <td class="themes">${(s.themes || '').split('、').filter(t=>t).map(t=>'<span class="theme-tag">'+t+'</span>').join('')}</td>
-                </tr>`;
+            const s = strategies.find(s => s.id === currentStrategy);
+            const cols = s ? s.columns : [];
+
+            let html = `<p class="result-meta">筛选时间：${data.screen_time} | 共找到 <strong>${data.total_found}</strong> 只</p>`;
+            html += '<table id="results-table"><thead><tr>';
+            cols.forEach(c => { html += `<th>${c.label}</th>`; });
+            html += '</tr></thead><tbody>';
+
+            data.results.forEach(row => {
+                const score = row.priority_score || 0;
+                html += `<tr class="priority-${score}">`;
+                cols.forEach(c => {
+                    const val = row[c.key];
+                    if (c.type === 'stars') {
+                        html += `<td class="stars">${'★'.repeat(val)}${'☆'.repeat(5 - val)}</td>`;
+                    } else if (c.type === 'themes') {
+                        const tags = (val || '').split('、').filter(t => t).map(t => `<span class="theme-tag">${t}</span>`).join('');
+                        html += `<td class="themes">${tags}</td>`;
+                    } else if (c.format === 'percent') {
+                        html += `<td>${Math.round((val || 0) * 100)}%</td>`;
+                    } else {
+                        let display = val != null ? val : '';
+                        if (c.suffix && display !== '') display = display + c.suffix;
+                        const cls = c.class ? ` class="${c.class}"` : (c.color === 'red' ? ' class="change"' : '');
+                        if (c.color === 'red' && display !== '' && !String(display).startsWith('-')) display = '+' + display;
+                        html += `<td${cls}>${display}</td>`;
+                    }
+                });
+                html += '</tr>';
             });
             html += '</tbody></table>';
             area.innerHTML = html;
@@ -313,7 +307,7 @@
 
         async function loadLatest() {
             try {
-                const resp = await fetch('/api/latest');
+                const resp = await fetch(`/api/latest?strategy=${currentStrategy}`);
                 const data = await resp.json();
                 if (data.screen_time && data.results && data.results.length > 0) {
                     renderResults(data);
@@ -386,8 +380,10 @@
             }
         }
 
-        loadLatest();
-        loadWinrate();
+        loadStrategies().then(() => {
+            loadLatest();
+            loadWinrate();
+        });
     </script>
 </body>
 </html>
