@@ -12,7 +12,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from database import init_db
 from screener import screen_stocks
-from trade_tracker import get_stats, get_recent_trades, add_pending_trades
+from trade_tracker import get_stats, get_recent_trades, get_pending_trades, add_pending_trades
 from notify_feishu import build_message, send_to_feishu, send_email
 
 logging.basicConfig(
@@ -134,7 +134,8 @@ async def api_latest():
 async def api_winrate():
     stats = get_stats()
     trades = get_recent_trades(20)
-    return JSONResponse({"stats": stats, "recent_trades": trades})
+    pending = get_pending_trades()
+    return JSONResponse({"stats": stats, "recent_trades": trades, "pending_trades": pending})
 
 
 @app.get("/api/schedules")

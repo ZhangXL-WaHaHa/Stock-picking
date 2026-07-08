@@ -51,6 +51,110 @@ header h1 {
     color: #eebb00;
 }
 
+/* Strategy Panel */
+.strategy-panel {
+    background: #1a1a3a;
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.strategy-toggle {
+    padding: 14px 20px;
+    font-size: 15px;
+    color: #8888cc;
+    font-weight: bold;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+}
+
+.strategy-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.strategy-toggle::before {
+    content: ">";
+    display: inline-block;
+    font-size: 12px;
+    transition: transform 0.2s;
+    color: #6666aa;
+}
+
+.strategy-panel[open] .strategy-toggle::before {
+    transform: rotate(90deg);
+}
+
+.strategy-content {
+    padding: 0 20px 18px;
+}
+
+.strategy-section {
+    margin-bottom: 14px;
+}
+
+.strategy-section h3 {
+    font-size: 14px;
+    color: #ffd700;
+    margin-bottom: 6px;
+}
+
+.strategy-section p {
+    font-size: 13px;
+    color: #999;
+    line-height: 1.6;
+}
+
+.strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.strategy-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #0f0f23;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.strategy-num {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    background: #2a2a4a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: #8888cc;
+    margin-top: 2px;
+}
+
+.strategy-item strong {
+    font-size: 13px;
+    color: #e0e0e0;
+    display: block;
+    margin-bottom: 3px;
+}
+
+.strategy-item p {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.5;
+    margin: 0;
+}
+
 .toolbar {
     display: flex;
     align-items: center;
@@ -440,6 +544,22 @@ header h1 {
     color: #ffd700;
 }
 
+.winrate-card.profit {
+    border-color: #2a4a6a;
+}
+
+.winrate-card.profit .winrate-num {
+    color: #4ecdc4;
+}
+
+.winrate-card.pending {
+    border-color: #4a4a2a;
+}
+
+.winrate-card.pending .winrate-num {
+    color: #eebb00;
+}
+
 .winrate-label {
     display: block;
     font-size: 12px;
@@ -470,6 +590,46 @@ header h1 {
 
 .trades-table tbody tr:hover {
     background: rgba(255, 255, 255, 0.03);
+}
+
+.trades-section-title {
+    font-size: 13px;
+    color: #8888cc;
+    font-weight: bold;
+    padding: 10px 0 6px;
+    border-top: 1px solid #2a2a4a;
+    margin-top: 8px;
+}
+
+.trades-section-title:first-child {
+    border-top: none;
+    margin-top: 0;
+}
+
+.trade-pending td {
+    color: #bbb;
+}
+
+.trade-status-pending {
+    color: #eebb00 !important;
+    font-weight: bold;
+}
+
+.trade-win .trade-pct {
+    color: #4ecdc4;
+    font-weight: bold;
+}
+
+.trade-loss .trade-pct {
+    color: #e63946;
+    font-weight: bold;
+}
+
+.winrate-empty {
+    text-align: center;
+    padding: 20px 0;
+    color: #555;
+    font-size: 13px;
 }
 
 /* Donate */

@@ -96,12 +96,20 @@ def get_stats() -> dict:
     data = _load()
     stats = data["stats"]
     total = stats["total"]
+    settled = [t for t in data["trades"] if t["result"] != "pending"]
+    total_profit = sum(t.get("profit_pct", 0) or 0 for t in settled)
     return {
         "wins": stats["wins"],
         "losses": stats["losses"],
         "total": total,
         "win_rate": round(stats["wins"] / total * 100, 1) if total > 0 else 0,
+        "total_profit": round(total_profit, 2),
     }
+
+
+def get_pending_trades() -> List[dict]:
+    data = _load()
+    return [t for t in data["trades"] if t["result"] == "pending"]
 
 
 def get_recent_trades(n: int = 20) -> List[dict]:

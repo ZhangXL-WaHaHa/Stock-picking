@@ -11,14 +11,88 @@
         <header>
             <h1>改良版一夜持股法 - 自动选股</h1>
             <div class="rules-summary">
+                <span class="rule">大盘环境</span>
                 <span class="rule">涨幅2-6%</span>
                 <span class="rule">量比&gt;1</span>
                 <span class="rule">换手率5-10%</span>
                 <span class="rule">流通市值50-300亿</span>
-                <span class="rule">15日内涨停</span>
-                <span class="rule semi">分时参考(半自动)</span>
+                <span class="rule">收盘价上半区</span>
+                <span class="rule">涨停+缩量回调</span>
+                <span class="rule">VWAP/尾盘信号</span>
             </div>
         </header>
+
+        <details class="strategy-panel">
+            <summary class="strategy-toggle">选股策略说明</summary>
+            <div class="strategy-content">
+                <div class="strategy-section">
+                    <h3>策略逻辑</h3>
+                    <p>尾盘买入、次日开盘卖出。通过多维度筛选找到当日强势且次日大概率高开的股票。</p>
+                </div>
+                <div class="strategy-grid">
+                    <div class="strategy-item">
+                        <span class="strategy-num">0</span>
+                        <div>
+                            <strong>大盘环境</strong>
+                            <p>上证指数当日跌幅超过0.5%时不出信号，避免逆势操作</p>
+                        </div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strategy-num">1</span>
+                        <div>
+                            <strong>涨跌幅 2-6%</strong>
+                            <p>当日涨幅适中，既有上涨动能又未过度追高</p>
+                        </div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strategy-num">2</span>
+                        <div>
+                            <strong>量比 &gt; 1</strong>
+                            <p>成交量高于近期均值，说明资金在积极参与</p>
+                        </div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strategy-num">3</span>
+                        <div>
+                            <strong>换手率 5-10%</strong>
+                            <p>换手充分但不过度，筹码交换活跃</p>
+                        </div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strategy-num">4</span>
+                        <div>
+                            <strong>流通市值 50-300亿</strong>
+                            <p>中盘股流动性好且弹性大，越接近150亿评分越高</p>
+                        </div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strategy-num">5</span>
+                        <div>
+                            <strong>收盘价在上半区</strong>
+                            <p>收盘价高于日内振幅中位，排除冲高回落的弱势票</p>
+                        </div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strategy-num">6</span>
+                        <div>
+                            <strong>涨停 + 缩量回调</strong>
+                            <p>15日内有涨停且之后缩量整理，说明主力控盘而非出货</p>
+                        </div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strategy-num">7</span>
+                        <div>
+                            <strong>VWAP / 尾盘信号</strong>
+                            <p>收盘价在均价线上方且非尾盘放量跳水，确认全天走势健康</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="strategy-section">
+                    <h3>优先级评分</h3>
+                    <p>根据流通市值与150亿的偏离度打分（1-5星），偏离越小评分越高。5星股票自动纳入胜率追踪。</p>
+                </div>
+            </div>
+        </details>
 
         <div class="toolbar">
             <button id="btn-screen" onclick="runScreen()">立即筛选</button>
@@ -58,8 +132,8 @@
             <span id="schedule-status"></span>
         </div>
 
-        <div id="winrate-panel" class="winrate-panel" style="display:none;">
-            <div class="winrate-header">一夜持股法 · 胜率追踪</div>
+        <div id="winrate-panel" class="winrate-panel">
+            <div class="winrate-header">胜率追踪</div>
             <div class="winrate-cards">
                 <div class="winrate-card">
                     <span class="winrate-num" id="wr-total">0</span>
@@ -77,8 +151,18 @@
                     <span class="winrate-num" id="wr-rate">0%</span>
                     <span class="winrate-label">胜率</span>
                 </div>
+                <div class="winrate-card profit">
+                    <span class="winrate-num" id="wr-profit">0%</span>
+                    <span class="winrate-label">累计收益</span>
+                </div>
+                <div class="winrate-card pending">
+                    <span class="winrate-num" id="wr-pending">0</span>
+                    <span class="winrate-label">待结算</span>
+                </div>
             </div>
+            <div id="pending-trades"></div>
             <div id="recent-trades"></div>
+            <div id="winrate-empty" class="winrate-empty">暂无交易记录，5星股票会自动纳入追踪</div>
         </div>
 
         <div id="results-area">
@@ -122,6 +206,7 @@
                     status.textContent = `筛选完成！找到 ${data.total_found} 只股票`;
                     status.className = 'success';
                     renderResults(data);
+                    loadWinrate();
                 } else {
                     status.textContent = `筛选失败: ${data.message}`;
                     status.className = 'error';
@@ -145,11 +230,12 @@
             html += `<table id="results-table"><thead><tr>
                 <th>优先级</th><th>代码</th><th>名称</th><th>最新价</th>
                 <th>涨跌幅%</th><th>量比</th><th>换手率%</th><th>流通市值(亿)</th>
-                <th>VWAP参考</th><th>尾盘量能</th><th>题材概念</th>
+                <th>收盘位</th><th>VWAP参考</th><th>尾盘量能</th><th>题材概念</th>
             </tr></thead><tbody>`;
 
             data.results.forEach(s => {
                 const stars = '★'.repeat(s.priority_score) + '☆'.repeat(5 - s.priority_score);
+                const closePosPercent = Math.round((s.close_position || 0) * 100);
                 html += `<tr class="priority-${s.priority_score}">
                     <td class="stars">${stars}</td>
                     <td class="code">${s.code}</td>
@@ -159,6 +245,7 @@
                     <td>${s.volume_ratio}</td>
                     <td>${s.turnover_rate}%</td>
                     <td>${s.market_cap_yi}</td>
+                    <td>${closePosPercent}%</td>
                     <td class="ref-info">${s.vwap_info}</td>
                     <td class="ref-info">${s.late_volume_info}</td>
                     <td class="themes">${(s.themes || '').split('、').filter(t=>t).map(t=>'<span class="theme-tag">'+t+'</span>').join('')}</td>
@@ -248,23 +335,48 @@
                 const resp = await fetch('/api/winrate');
                 const data = await resp.json();
                 const s = data.stats;
-                if (s.total === 0) return;
-                document.getElementById('winrate-panel').style.display = '';
+
                 document.getElementById('wr-total').textContent = s.total;
                 document.getElementById('wr-wins').textContent = s.wins;
                 document.getElementById('wr-losses').textContent = s.losses;
                 document.getElementById('wr-rate').textContent = s.win_rate + '%';
 
+                const profitEl = document.getElementById('wr-profit');
+                profitEl.textContent = (s.total_profit > 0 ? '+' : '') + s.total_profit + '%';
+                profitEl.style.color = s.total_profit >= 0 ? '#4ecdc4' : '#e63946';
+
+                const pending = data.pending_trades || [];
+                document.getElementById('wr-pending').textContent = pending.length;
+
+                const emptyEl = document.getElementById('winrate-empty');
+                const hasTrades = s.total > 0 || pending.length > 0;
+                emptyEl.style.display = hasTrades ? 'none' : '';
+
+                if (pending.length > 0) {
+                    let html = '<div class="trades-section-title">待结算</div>';
+                    html += '<table class="trades-table"><thead><tr><th>选股日期</th><th>代码</th><th>名称</th><th>买入价</th><th>状态</th></tr></thead><tbody>';
+                    pending.forEach(t => {
+                        html += `<tr class="trade-pending"><td>${t.pick_date}</td><td>${t.code}</td><td>${t.name}</td><td>${t.buy_price}</td><td class="trade-status-pending">待结算</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    document.getElementById('pending-trades').innerHTML = html;
+                } else {
+                    document.getElementById('pending-trades').innerHTML = '';
+                }
+
                 const trades = data.recent_trades;
                 if (trades.length > 0) {
-                    let html = '<table class="trades-table"><thead><tr><th>日期</th><th>代码</th><th>名称</th><th>买入价</th><th>卖出价</th><th>盈亏</th></tr></thead><tbody>';
+                    let html = '<div class="trades-section-title">历史记录</div>';
+                    html += '<table class="trades-table"><thead><tr><th>结算日期</th><th>代码</th><th>名称</th><th>买入价</th><th>卖出价</th><th>盈亏</th></tr></thead><tbody>';
                     trades.forEach(t => {
-                        const color = t.result === 'win' ? 'green' : 'red';
-                        const icon = t.result === 'win' ? '✅' : '❌';
-                        html += `<tr><td>${t.sell_date || t.pick_date}</td><td>${t.code}</td><td>${t.name}</td><td>${t.buy_price}</td><td>${t.sell_price}</td><td style="color:${color}">${icon} ${t.profit_pct > 0 ? '+' : ''}${t.profit_pct}%</td></tr>`;
+                        const cls = t.result === 'win' ? 'trade-win' : 'trade-loss';
+                        const sign = t.profit_pct > 0 ? '+' : '';
+                        html += `<tr class="${cls}"><td>${t.sell_date || t.pick_date}</td><td>${t.code}</td><td>${t.name}</td><td>${t.buy_price}</td><td>${t.sell_price}</td><td class="trade-pct">${sign}${t.profit_pct}%</td></tr>`;
                     });
                     html += '</tbody></table>';
                     document.getElementById('recent-trades').innerHTML = html;
+                } else {
+                    document.getElementById('recent-trades').innerHTML = '';
                 }
             } catch (e) {
                 console.error(e);

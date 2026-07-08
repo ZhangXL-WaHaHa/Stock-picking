@@ -52,6 +52,7 @@ def build_message(results, stats):
             f"  价格: {s['price']}  涨幅: +{s['change_pct']}%  "
             f"量比: {s['volume_ratio']}  换手: {s['turnover_rate']}%\n"
             f"  流通市值: {s['market_cap_yi']}亿  "
+            f"收盘位: {s.get('close_position', 0):.0%}  "
             f"VWAP: {s['vwap_info']}\n"
             f"  尾盘: {s['late_volume_info']}"
             f"{themes_str}"

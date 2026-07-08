@@ -17,6 +17,22 @@ BATCH_SIZE = 80
 NO_PROXY = {"http": None, "https": None}
 
 
+def get_market_index_change() -> Optional[float]:
+    """获取上证指数实时涨跌幅"""
+    try:
+        resp = requests.get(TENCENT_BATCH_URL.format("sh000001"), headers=HEADERS, timeout=10, proxies=NO_PROXY)
+        resp.encoding = "gbk"
+        for line in resp.text.strip().split(";"):
+            if "~" not in line:
+                continue
+            parts = line.split("~")
+            if len(parts) > 32 and parts[32]:
+                return float(parts[32])
+    except Exception as e:
+        logger.warning(f"获取上证指数失败: {e}")
+    return None
+
+
 def _generate_main_board_codes() -> List[str]:
     """生成全部主板可能的股票代码（sh60xxxx + sz00xxxx）"""
     codes = []
@@ -48,10 +64,15 @@ def _parse_tencent_quote(raw: str) -> Optional[dict]:
         volume_ratio = float(parts[49]) if parts[49] else 0
         circ_mv = float(parts[45]) if parts[45] else 0
 
+        high = float(parts[33]) if parts[33] else price
+        low = float(parts[34]) if parts[34] else price
+
         return {
             "代码": code,
             "名称": name,
             "最新价": price,
+            "最高": high,
+            "最低": low,
             "涨跌幅": change_pct,
             "换手率": turnover_rate,
             "量比": volume_ratio,
@@ -90,8 +111,11 @@ def get_realtime_quotes() -> pd.DataFrame:
     return df
 
 
-def _check_stock_zt(code: str, start_date: str, end_date: str) -> bool:
-    """通过腾讯历史K线检查某只股票在指定时间段内是否涨停过"""
+def _check_zt_pattern(code: str, start_date: str, end_date: str) -> bool:
+    """检查涨停+缩量回调 pattern：
+    1. 近期有涨停
+    2. 涨停后平均成交量 < 涨停日成交量的80%（缩量整理）
+    """
     prefix = "sh" if code.startswith("6") else "sz"
     symbol = f"{prefix}{code}"
     try:
@@ -107,34 +131,52 @@ def _check_stock_zt(code: str, start_date: str, end_date: str) -> bool:
         if not days or len(days) < 2:
             return False
 
+        last_zt_idx = -1
         for j in range(1, len(days)):
-            prev_close = float(days[j - 1][1])  # 前日开盘→用收盘
-            close = float(days[j][2])            # 当日收盘
+            prev_close = float(days[j - 1][2])
+            close = float(days[j][2])
             if prev_close > 0:
                 pct = (close - prev_close) / prev_close * 100
                 if pct >= 9.8:
-                    return True
+                    last_zt_idx = j
+
+        if last_zt_idx < 0:
+            return False
+
+        if last_zt_idx >= len(days) - 1:
+            return True
+
+        zt_volume = float(days[last_zt_idx][5])
+        if zt_volume <= 0:
+            return True
+
+        post_zt_days = days[last_zt_idx + 1:]
+        if not post_zt_days:
+            return True
+
+        avg_post_vol = sum(float(d[5]) for d in post_zt_days) / len(post_zt_days)
+        return avg_post_vol < zt_volume * 0.8
     except Exception:
         pass
     return False
 
 
 def get_zt_codes_recent(candidate_codes: List[str], days: int = 15) -> Set[str]:
-    """检查候选股票中哪些在近 N 天内有涨停记录"""
-    logger.info(f"正在检查 {len(candidate_codes)} 只候选股票的近{days}日涨停记录...")
+    """检查候选股票中哪些在近 N 天内有涨停+缩量回调 pattern"""
+    logger.info(f"正在检查 {len(candidate_codes)} 只候选股票的近{days}日涨停+缩量pattern...")
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=days + 10)).strftime("%Y-%m-%d")
 
     zt_codes = set()
     for idx, code in enumerate(candidate_codes):
-        if _check_stock_zt(code, start_date, end_date):
+        if _check_zt_pattern(code, start_date, end_date):
             zt_codes.add(code)
         if (idx + 1) % 20 == 0:
             time.sleep(0.1)
         if (idx + 1) % 50 == 0:
-            logger.info(f"涨停检查进度: {idx + 1}/{len(candidate_codes)}，已找到 {len(zt_codes)} 只")
+            logger.info(f"涨停pattern检查进度: {idx + 1}/{len(candidate_codes)}，已找到 {len(zt_codes)} 只")
 
-    logger.info(f"涨停检查完成，{len(zt_codes)}/{len(candidate_codes)} 只近{days}日有涨停")
+    logger.info(f"涨停pattern检查完成，{len(zt_codes)}/{len(candidate_codes)} 只符合缩量回调pattern")
     return zt_codes
 
 
