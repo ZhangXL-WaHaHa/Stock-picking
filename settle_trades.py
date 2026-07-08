@@ -29,10 +29,13 @@ def build_settle_message(settled, stats):
         lines = []
         for t in settled:
             icon = "+" if t["result"] == "win" else ""
-            lines.append(f"{'✅' if t['result'] == 'win' else '❌'} "
-                         f"**{t['name']}**({t['code']}) "
-                         f"买{t['buy_price']} → 卖{t['sell_price']} "
-                         f"{icon}{t['profit_pct']}%")
+            line = (f"{'✅' if t['result'] == 'win' else '❌'} "
+                    f"**{t['name']}**({t['code']}) "
+                    f"买{t['buy_price']} → 卖{t['sell_price']} "
+                    f"{icon}{t['profit_pct']}%")
+            if t["result"] == "loss" and t.get("analysis"):
+                line += f"\n  原因: {t['analysis']}"
+            lines.append(line)
         lines.append(f"\n---\n**累计胜率**: {stats['wins']}胜 {stats['losses']}负 "
                      f"共{stats['total']}场 胜率{stats['win_rate']}%")
         content = "\n".join(lines)
@@ -53,7 +56,7 @@ def send_feishu(message):
     if not WEBHOOK_URL:
         return
     try:
-        resp = requests.post(WEBHOOK_URL, json=message, timeout=10)
+        resp = requests.post(WEBHOOK_URL, json=message, timeout=10, proxies={"http": None, "https": None})
         data = resp.json()
         if data.get("code") == 0:
             logger.info("飞书推送成功")
@@ -80,9 +83,12 @@ def send_email(settled, stats):
         rows = ""
         for t in settled:
             color = "green" if t["result"] == "win" else "red"
+            analysis = ""
+            if t["result"] == "loss" and t.get("analysis"):
+                analysis = f"<br><span style='font-size:12px;color:#888'>{t['analysis']}</span>"
             rows += (f"<tr><td>{t['name']}</td><td>{t['code']}</td>"
                      f"<td>{t['buy_price']}</td><td>{t['sell_price']}</td>"
-                     f"<td style='color:{color}'>{t['profit_pct']:+.2f}%</td></tr>")
+                     f"<td style='color:{color}'>{t['profit_pct']:+.2f}%{analysis}</td></tr>")
         html = f"""
         <h2>一夜持股结算 - {now}</h2>
         <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px">

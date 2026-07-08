@@ -632,6 +632,28 @@ header h1 {
     font-size: 13px;
 }
 
+.analysis-cell {
+    max-width: 200px;
+}
+
+.analysis-tag {
+    display: inline-block;
+    background: #3a1a1a;
+    border: 1px solid #6a2a2a;
+    color: #ff8888;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin: 1px 2px;
+    white-space: nowrap;
+}
+
+.analysis-tag.ok {
+    background: #1a3a2a;
+    border-color: #2a6a4a;
+    color: #4ecdc4;
+}
+
 /* Donate */
 .donate-fab {
     position: fixed;

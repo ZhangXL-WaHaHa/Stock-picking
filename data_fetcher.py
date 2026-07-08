@@ -234,6 +234,46 @@ def get_next_day_open(code: str, after_date: str) -> Optional[Tuple[str, float]]
     return None
 
 
+def _get_kline_around(symbol: str, center_date: str, margin_days: int = 10) -> list:
+    start = (datetime.strptime(center_date, "%Y-%m-%d") - timedelta(days=margin_days)).strftime("%Y-%m-%d")
+    end = (datetime.strptime(center_date, "%Y-%m-%d") + timedelta(days=margin_days)).strftime("%Y-%m-%d")
+    try:
+        url = TENCENT_KLINE_URL.format(symbol, start, end)
+        resp = requests.get(url, headers=HEADERS, timeout=8, proxies=NO_PROXY)
+        text = resp.text
+        if text.startswith("kline_dayqfq="):
+            text = text[len("kline_dayqfq="):]
+        data = json.loads(text)
+        klines = data.get("data", {}).get(symbol, {})
+        return klines.get("qfqday", klines.get("day", []))
+    except Exception:
+        return []
+
+
+def get_analysis_data(code: str, pick_date: str, sell_date: str) -> dict:
+    """获取交易分析所需的K线数据（个股选股日 + 上证结算日）"""
+    prefix = "sh" if code.startswith("6") else "sz"
+    stock_symbol = f"{prefix}{code}"
+
+    result = {"stock_pick_day": None, "market_sell_day": None, "market_prev_day": None}
+
+    stock_days = _get_kline_around(stock_symbol, pick_date)
+    for day in stock_days:
+        if day[0] == pick_date:
+            result["stock_pick_day"] = day
+            break
+
+    market_days = _get_kline_around("sh000001", sell_date)
+    for i, day in enumerate(market_days):
+        if day[0] == sell_date:
+            result["market_sell_day"] = day
+            if i > 0:
+                result["market_prev_day"] = market_days[i - 1]
+            break
+
+    return result
+
+
 def get_stock_themes(code: str) -> List[str]:
     prefix = "SH" if code.startswith("6") else "SZ"
     symbol = f"{prefix}{code}"

@@ -367,11 +367,14 @@
                 const trades = data.recent_trades;
                 if (trades.length > 0) {
                     let html = '<div class="trades-section-title">历史记录</div>';
-                    html += '<table class="trades-table"><thead><tr><th>结算日期</th><th>代码</th><th>名称</th><th>买入价</th><th>卖出价</th><th>盈亏</th></tr></thead><tbody>';
+                    html += '<table class="trades-table"><thead><tr><th>结算日期</th><th>代码</th><th>名称</th><th>买入价</th><th>卖出价</th><th>盈亏</th><th>分析</th></tr></thead><tbody>';
                     trades.forEach(t => {
                         const cls = t.result === 'win' ? 'trade-win' : 'trade-loss';
                         const sign = t.profit_pct > 0 ? '+' : '';
-                        html += `<tr class="${cls}"><td>${t.sell_date || t.pick_date}</td><td>${t.code}</td><td>${t.name}</td><td>${t.buy_price}</td><td>${t.sell_price}</td><td class="trade-pct">${sign}${t.profit_pct}%</td></tr>`;
+                        const analysis = t.analysis && t.result === 'loss'
+                            ? t.analysis.split('|').map(r => `<span class="analysis-tag">${r}</span>`).join('')
+                            : (t.result === 'win' ? '<span class="analysis-tag ok">正常</span>' : '');
+                        html += `<tr class="${cls}"><td>${t.sell_date || t.pick_date}</td><td>${t.code}</td><td>${t.name}</td><td>${t.buy_price}</td><td>${t.sell_price}</td><td class="trade-pct">${sign}${t.profit_pct}%</td><td class="analysis-cell">${analysis}</td></tr>`;
                     });
                     html += '</tbody></table>';
                     document.getElementById('recent-trades').innerHTML = html;
