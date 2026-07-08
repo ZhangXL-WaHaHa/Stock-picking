@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 TENCENT_BATCH_URL = "https://qt.gtimg.cn/q={}"
 TENCENT_MINUTE_URL = "https://web.ifzq.gtimg.cn/appstock/app/minute/query?_var=min_data&code={}"
-TENCENT_KLINE_URL = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?_var=kline_dayqfq&param={},day,{},{},30,qfq"
+EASTMONEY_KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
 EASTMONEY_CONCEPT_URL = "https://emweb.securities.eastmoney.com/PC_HSF10/CoreConception/PageAjax?code={}"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Referer": "https://finance.qq.com"}
 BATCH_SIZE = 80
@@ -111,54 +111,81 @@ def get_realtime_quotes() -> pd.DataFrame:
     return df
 
 
+def _em_secid(code: str) -> str:
+    """股票代码转东方财富 secid 格式"""
+    if code.startswith("sh"):
+        return f"1.{code[2:]}"
+    if code.startswith("sz"):
+        return f"0.{code[2:]}"
+    if code.startswith("6"):
+        return f"1.{code}"
+    return f"0.{code}"
+
+
+def _fetch_em_klines(code: str, limit: int = 120) -> list:
+    """通过东方财富接口获取K线，返回 [[date, open, close, high, low, volume], ...]"""
+    try:
+        params = {
+            "secid": _em_secid(code),
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57",
+            "klt": "101",
+            "fqt": "1",
+            "end": "20500101",
+            "lmt": str(limit),
+        }
+        resp = requests.get(EASTMONEY_KLINE_URL, params=params, headers=HEADERS, timeout=10, proxies=NO_PROXY)
+        data = resp.json()
+        raw = data.get("data")
+        if not raw:
+            return []
+        lines = raw.get("klines", [])
+        result = []
+        for line in lines:
+            parts = line.split(",")
+            if len(parts) >= 6:
+                result.append(parts[:6])
+        return result
+    except Exception as e:
+        logger.debug(f"获取 {code} K线失败: {e}")
+        return []
+
+
 def _check_zt_pattern(code: str, start_date: str, end_date: str) -> bool:
     """检查涨停+缩量回调 pattern：
     1. 近期有涨停
     2. 涨停后平均成交量 < 涨停日成交量的80%（缩量整理）
     """
-    prefix = "sh" if code.startswith("6") else "sz"
-    symbol = f"{prefix}{code}"
-    try:
-        url = TENCENT_KLINE_URL.format(symbol, start_date, end_date)
-        resp = requests.get(url, headers=HEADERS, timeout=8, proxies=NO_PROXY)
-        text = resp.text
-        if text.startswith("kline_dayqfq="):
-            text = text[len("kline_dayqfq="):]
-        data = json.loads(text)
+    days = _fetch_em_klines(code, limit=40)
+    days = [d for d in days if start_date <= d[0] <= end_date]
+    if len(days) < 2:
+        return False
 
-        klines = data.get("data", {}).get(symbol, {})
-        days = klines.get("qfqday", klines.get("day", []))
-        if not days or len(days) < 2:
-            return False
+    last_zt_idx = -1
+    for j in range(1, len(days)):
+        prev_close = float(days[j - 1][2])
+        close = float(days[j][2])
+        if prev_close > 0:
+            pct = (close - prev_close) / prev_close * 100
+            if pct >= 9.8:
+                last_zt_idx = j
 
-        last_zt_idx = -1
-        for j in range(1, len(days)):
-            prev_close = float(days[j - 1][2])
-            close = float(days[j][2])
-            if prev_close > 0:
-                pct = (close - prev_close) / prev_close * 100
-                if pct >= 9.8:
-                    last_zt_idx = j
+    if last_zt_idx < 0:
+        return False
 
-        if last_zt_idx < 0:
-            return False
+    if last_zt_idx >= len(days) - 1:
+        return True
 
-        if last_zt_idx >= len(days) - 1:
-            return True
+    zt_volume = float(days[last_zt_idx][5])
+    if zt_volume <= 0:
+        return True
 
-        zt_volume = float(days[last_zt_idx][5])
-        if zt_volume <= 0:
-            return True
+    post_zt_days = days[last_zt_idx + 1:]
+    if not post_zt_days:
+        return True
 
-        post_zt_days = days[last_zt_idx + 1:]
-        if not post_zt_days:
-            return True
-
-        avg_post_vol = sum(float(d[5]) for d in post_zt_days) / len(post_zt_days)
-        return avg_post_vol < zt_volume * 0.8
-    except Exception:
-        pass
-    return False
+    avg_post_vol = sum(float(d[5]) for d in post_zt_days) / len(post_zt_days)
+    return avg_post_vol < zt_volume * 0.8
 
 
 def get_zt_codes_recent(candidate_codes: List[str], days: int = 15) -> Set[str]:
@@ -213,41 +240,18 @@ def get_stock_intraday(code: str) -> Optional[pd.DataFrame]:
 
 
 def get_next_day_open(code: str, after_date: str) -> Optional[Tuple[str, float]]:
-    prefix = "sh" if code.startswith("6") else "sz"
-    symbol = f"{prefix}{code}"
-    start = (datetime.strptime(after_date, "%Y-%m-%d") - timedelta(days=5)).strftime("%Y-%m-%d")
-    end = (datetime.strptime(after_date, "%Y-%m-%d") + timedelta(days=10)).strftime("%Y-%m-%d")
-    try:
-        url = TENCENT_KLINE_URL.format(symbol, start, end)
-        resp = requests.get(url, headers=HEADERS, timeout=8, proxies=NO_PROXY)
-        text = resp.text
-        if text.startswith("kline_dayqfq="):
-            text = text[len("kline_dayqfq="):]
-        data = json.loads(text)
-        klines = data.get("data", {}).get(symbol, {})
-        days = klines.get("qfqday", klines.get("day", []))
-        for day in days:
-            if day[0] > after_date:
-                return (day[0], float(day[1]))
-    except Exception as e:
-        logger.debug(f"获取 {code} 次日开盘价失败: {e}")
+    days = _fetch_em_klines(code, limit=30)
+    for day in days:
+        if day[0] > after_date:
+            return (day[0], float(day[1]))
     return None
 
 
-def _get_kline_around(symbol: str, center_date: str, margin_days: int = 10) -> list:
+def _get_kline_around(code: str, center_date: str, margin_days: int = 10) -> list:
+    days = _fetch_em_klines(code, limit=margin_days * 3)
     start = (datetime.strptime(center_date, "%Y-%m-%d") - timedelta(days=margin_days)).strftime("%Y-%m-%d")
     end = (datetime.strptime(center_date, "%Y-%m-%d") + timedelta(days=margin_days)).strftime("%Y-%m-%d")
-    try:
-        url = TENCENT_KLINE_URL.format(symbol, start, end)
-        resp = requests.get(url, headers=HEADERS, timeout=8, proxies=NO_PROXY)
-        text = resp.text
-        if text.startswith("kline_dayqfq="):
-            text = text[len("kline_dayqfq="):]
-        data = json.loads(text)
-        klines = data.get("data", {}).get(symbol, {})
-        return klines.get("qfqday", klines.get("day", []))
-    except Exception:
-        return []
+    return [d for d in days if start <= d[0] <= end]
 
 
 def get_analysis_data(code: str, pick_date: str, sell_date: str) -> dict:
@@ -276,22 +280,7 @@ def get_analysis_data(code: str, pick_date: str, sell_date: str) -> dict:
 
 def get_stock_klines(code: str, days: int = 90) -> list:
     """获取个股近N日K线 [date, open, close, high, low, volume]"""
-    prefix = "sh" if code.startswith("6") else "sz"
-    symbol = f"{prefix}{code}"
-    end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=days + 30)).strftime("%Y-%m-%d")
-    try:
-        url = TENCENT_KLINE_URL.format(symbol, start_date, end_date)
-        resp = requests.get(url, headers=HEADERS, timeout=10, proxies=NO_PROXY)
-        text = resp.text
-        if text.startswith("kline_dayqfq="):
-            text = text[len("kline_dayqfq="):]
-        data = json.loads(text)
-        klines = data.get("data", {}).get(symbol, {})
-        return klines.get("qfqday", klines.get("day", []))
-    except Exception as e:
-        logger.debug(f"获取 {code} K线数据失败: {e}")
-    return []
+    return _fetch_em_klines(code, limit=days + 30)
 
 
 def get_stock_themes(code: str) -> List[str]:
