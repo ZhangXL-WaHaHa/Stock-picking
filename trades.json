@@ -5,15 +5,16 @@
       "name": "苏州固锝",
       "pick_date": "2026-07-07",
       "buy_price": 14.42,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-07-08",
+      "sell_price": 14.29,
+      "profit_pct": -0.9,
+      "result": "loss",
+      "analysis": "原因不明"
     }
   ],
   "stats": {
     "wins": 0,
-    "losses": 0,
-    "total": 0
+    "losses": 1,
+    "total": 1
   }
 }
