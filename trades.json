@@ -16,35 +16,38 @@
       "name": "滨化股份",
       "pick_date": "2026-07-21",
       "buy_price": 5.75,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-07-22",
+      "sell_price": 5.76,
+      "profit_pct": 0.17,
+      "result": "win",
+      "analysis": "正常"
     },
     {
       "code": "603698",
       "name": "航天工程",
       "pick_date": "2026-07-21",
       "buy_price": 23.95,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-07-22",
+      "sell_price": 23.0,
+      "profit_pct": -3.97,
+      "result": "loss",
+      "analysis": "大盘拖累(-0.6%)|跳空低开(-4.0%)|追高接盘(位81%)"
     },
     {
       "code": "002929",
       "name": "润建股份",
       "pick_date": "2026-07-21",
       "buy_price": 51.69,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-07-22",
+      "sell_price": 53.0,
+      "profit_pct": 2.53,
+      "result": "win",
+      "analysis": "正常"
     }
   ],
   "stats": {
-    "wins": 0,
-    "losses": 1,
-    "total": 1
+    "wins": 2,
+    "losses": 2,
+    "total": 4
   }
 }
