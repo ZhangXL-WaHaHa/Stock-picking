@@ -43,6 +43,16 @@
       "profit_pct": 2.53,
       "result": "win",
       "analysis": "正常"
+    },
+    {
+      "code": "000506",
+      "name": "招金黄金",
+      "pick_date": "2026-08-05",
+      "buy_price": 15.32,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
     }
   ],
   "stats": {
