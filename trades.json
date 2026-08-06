@@ -54,6 +54,16 @@
       "profit_pct": 9.14,
       "result": "win",
       "analysis": "正常"
+    },
+    {
+      "code": "002980",
+      "name": "华盛昌",
+      "pick_date": "2026-08-06",
+      "buy_price": 78.73,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
     }
   ],
   "stats": {
