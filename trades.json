@@ -49,15 +49,16 @@
       "name": "招金黄金",
       "pick_date": "2026-08-05",
       "buy_price": 15.32,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-08-06",
+      "sell_price": 16.72,
+      "profit_pct": 9.14,
+      "result": "win",
+      "analysis": "正常"
     }
   ],
   "stats": {
-    "wins": 2,
+    "wins": 3,
     "losses": 2,
-    "total": 4
+    "total": 5
   }
 }
