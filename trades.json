@@ -60,15 +60,16 @@
       "name": "华盛昌",
       "pick_date": "2026-08-06",
       "buy_price": 78.73,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-08-07",
+      "sell_price": 79.71,
+      "profit_pct": 1.24,
+      "result": "win",
+      "analysis": "正常"
     }
   ],
   "stats": {
-    "wins": 3,
+    "wins": 4,
     "losses": 2,
-    "total": 5
+    "total": 6
   }
 }
