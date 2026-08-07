@@ -75,6 +75,16 @@
       "sell_price": null,
       "profit_pct": null,
       "result": "pending"
+    },
+    {
+      "code": "002745",
+      "name": "木林森",
+      "pick_date": "2026-08-07",
+      "buy_price": 11.41,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
     }
   ],
   "stats": {
