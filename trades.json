@@ -87,6 +87,16 @@
       "profit_pct": 0.7,
       "result": "win",
       "analysis": "正常"
+    },
+    {
+      "code": "001369",
+      "name": "双欣材料",
+      "pick_date": "2026-08-10",
+      "buy_price": 13.08,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
     }
   ],
   "stats": {
