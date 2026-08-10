@@ -71,25 +71,27 @@
       "name": "招金黄金",
       "pick_date": "2026-08-07",
       "buy_price": 17.41,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-08-10",
+      "sell_price": 18.27,
+      "profit_pct": 4.94,
+      "result": "win",
+      "analysis": "正常"
     },
     {
       "code": "002745",
       "name": "木林森",
       "pick_date": "2026-08-07",
       "buy_price": 11.41,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-08-10",
+      "sell_price": 11.49,
+      "profit_pct": 0.7,
+      "result": "win",
+      "analysis": "正常"
     }
   ],
   "stats": {
-    "wins": 4,
+    "wins": 6,
     "losses": 2,
-    "total": 6
+    "total": 8
   }
 }
