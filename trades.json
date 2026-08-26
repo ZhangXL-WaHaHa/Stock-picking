@@ -93,15 +93,16 @@
       "name": "双欣材料",
       "pick_date": "2026-08-10",
       "buy_price": 13.08,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-08-11",
+      "sell_price": 13.19,
+      "profit_pct": 0.84,
+      "result": "win",
+      "analysis": "正常"
     }
   ],
   "stats": {
-    "wins": 6,
+    "wins": 7,
     "losses": 2,
-    "total": 8
+    "total": 9
   }
 }
