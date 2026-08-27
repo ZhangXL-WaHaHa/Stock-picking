@@ -98,6 +98,16 @@
       "profit_pct": 0.84,
       "result": "win",
       "analysis": "正常"
+    },
+    {
+      "code": "601678",
+      "name": "滨化股份",
+      "pick_date": "2026-08-27",
+      "buy_price": 6.48,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
     }
   ],
   "stats": {
