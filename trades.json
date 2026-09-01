@@ -104,15 +104,16 @@
       "name": "滨化股份",
       "pick_date": "2026-08-27",
       "buy_price": 6.48,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-08-28",
+      "sell_price": 6.5,
+      "profit_pct": 0.31,
+      "result": "win",
+      "analysis": "正常"
     }
   ],
   "stats": {
-    "wins": 7,
+    "wins": 8,
     "losses": 2,
-    "total": 9
+    "total": 10
   }
 }
