@@ -109,6 +109,26 @@
       "profit_pct": 0.31,
       "result": "win",
       "analysis": "正常"
+    },
+    {
+      "code": "603124",
+      "name": "江南新材",
+      "pick_date": "2026-10-13",
+      "buy_price": 109.15,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
+    },
+    {
+      "code": "002792",
+      "name": "通宇通讯",
+      "pick_date": "2026-10-13",
+      "buy_price": 27.44,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
     }
   ],
   "stats": {
