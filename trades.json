@@ -115,25 +115,27 @@
       "name": "江南新材",
       "pick_date": "2026-10-13",
       "buy_price": 109.15,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-10-14",
+      "sell_price": 110.34,
+      "profit_pct": 1.09,
+      "result": "win",
+      "analysis": "正常"
     },
     {
       "code": "002792",
       "name": "通宇通讯",
       "pick_date": "2026-10-13",
       "buy_price": 27.44,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-10-14",
+      "sell_price": 27.01,
+      "profit_pct": -1.57,
+      "result": "loss",
+      "analysis": "跳空低开(-1.6%)|追高接盘(位98%)"
     }
   ],
   "stats": {
-    "wins": 8,
-    "losses": 2,
-    "total": 10
+    "wins": 9,
+    "losses": 3,
+    "total": 12
   }
 }
