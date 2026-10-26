@@ -131,6 +131,16 @@
       "profit_pct": -1.57,
       "result": "loss",
       "analysis": "跳空低开(-1.6%)|追高接盘(位98%)"
+    },
+    {
+      "code": "601595",
+      "name": "上海电影",
+      "pick_date": "2026-10-26",
+      "buy_price": 29.36,
+      "sell_date": null,
+      "sell_price": null,
+      "profit_pct": null,
+      "result": "pending"
     }
   ],
   "stats": {
