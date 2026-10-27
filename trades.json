@@ -137,15 +137,16 @@
       "name": "上海电影",
       "pick_date": "2026-10-26",
       "buy_price": 29.36,
-      "sell_date": null,
-      "sell_price": null,
-      "profit_pct": null,
-      "result": "pending"
+      "sell_date": "2026-10-27",
+      "sell_price": 28.88,
+      "profit_pct": -1.63,
+      "result": "loss",
+      "analysis": "跳空低开(-1.6%)|追高接盘(位81%)"
     }
   ],
   "stats": {
     "wins": 9,
-    "losses": 3,
-    "total": 12
+    "losses": 4,
+    "total": 13
   }
 }
